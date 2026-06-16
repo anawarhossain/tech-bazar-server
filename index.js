@@ -1,5 +1,5 @@
-const dns = require('node:dns');
-dns.setServers(['1.1.1.1', '1.0.0.1']); 
+const dns = require("node:dns");
+dns.setServers(["1.1.1.1", "1.0.0.1"]);
 
 const express = require("express");
 const dontenv = require("dotenv");
@@ -32,8 +32,26 @@ async function run() {
   try {
     await client.connect();
     const db = client.db("tech-bazaar");
+    const subcriptionCollection = db.collection("subcription");
+    const userCollection = db.collection("user");
 
- 
+    app.post("/subcription", async (req, res) => {
+      const { sessionId, userId, priceId } = req.body;
+
+      await subcriptionCollection.insertOne({
+        sessionId,
+        userId,
+        priceId,
+      });
+      // update user role
+      await userCollection.updateOne(
+        { _id: new ObjectId(userId) },
+        { $set: { role: "pro" } },
+      );
+
+      res.json({ message: "Payment successful" });
+
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
