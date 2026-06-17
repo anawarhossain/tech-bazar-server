@@ -2,10 +2,10 @@ const dns = require("node:dns");
 dns.setServers(["1.1.1.1", "1.0.0.1"]);
 
 const express = require("express");
-const dontenv = require("dotenv");
+const dotenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-dontenv.config();
+dotenv.config();
 
 const uri = process.env.MONGODB_URI;
 
@@ -35,9 +35,16 @@ async function run() {
     const subcriptionCollection = db.collection("subcription");
     const userCollection = db.collection("user");
 
-    app.post("/subcription", async (req, res) => {
+    app.post("/api/subcription", async (req, res) => {
       const { sessionId, userId, priceId } = req.body;
 
+      // 1. Check if this session has already been processed
+      const existingSub = await subcriptionCollection.findOne({ sessionId });
+      if (existingSub) {
+        return res.json({ message: "Subscription already processed" });
+      }
+
+      // if not inserted insert it
       await subcriptionCollection.insertOne({
         sessionId,
         userId,
@@ -46,11 +53,10 @@ async function run() {
       // update user role
       await userCollection.updateOne(
         { _id: new ObjectId(userId) },
-        { $set: { role: "pro" } },
+        { $set: { plan: "pro" } },
       );
 
       res.json({ message: "Payment successful" });
-
     });
 
     await client.db("admin").command({ ping: 1 });
